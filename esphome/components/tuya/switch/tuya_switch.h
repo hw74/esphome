@@ -18,7 +18,6 @@ class TuyaSwitch : public switch_::Switch, public Component {
 
  protected:
   void write_state(bool state) override;
-  void update_switch_(uint32_t value);
 
   Tuya *parent_;
   uint8_t datapoint_id_{};
