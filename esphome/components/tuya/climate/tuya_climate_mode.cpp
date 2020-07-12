@@ -23,9 +23,9 @@ const char *tuya_power_level_to_string(TuyaPowerLevel level) {
 const char *tuya_operation_mode_to_string(TuyaOperationMode mode) {
   switch (mode) {
     case tuya::OPERATION_MODE_MANUAL:
-      return "M";
+      return "MANUAL";
     case tuya::OPERATION_MODE_PROGRAM:
-      return "P";
+      return "PROGRAM";
     case tuya::OPERATION_MODE_UNKNOWN:
       return "UNKNOWN";
     default:
