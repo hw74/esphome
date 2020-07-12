@@ -43,6 +43,39 @@ void TuyaClimate::setup() {
   //     ESP_LOGD(TAG, "MCU reported eco mode of: %s", ONOFF(datapoint.value_bool));
   //   });
   // }
+  if (this->power_level_id_.has_value()) {
+    this->parent_->register_listener(*this->power_level_id_, [this](TuyaDatapoint datapoint) {
+      if (power_level_enum_low_.has_value() && datapoint.value_enum == power_level_enum_low_.value())
+        this->set_mcu_reported_power_level(TuyaPowerLevel::POWER_LEVEL_LOW);
+      else if (power_level_enum_medium_.has_value() && datapoint.value_enum == power_level_enum_medium_.value())
+        this->set_mcu_reported_power_level(TuyaPowerLevel::POWER_LEVEL_MEDIUM);
+      else if (power_level_enum_high_.has_value() && datapoint.value_enum == power_level_enum_high_.value())
+        this->set_mcu_reported_power_level(TuyaPowerLevel::POWER_LEVEL_HIGH);
+      else if (power_level_enum_off_.has_value() && datapoint.value_enum == power_level_enum_off_.value())
+        this->set_mcu_reported_power_level(TuyaPowerLevel::POWER_LEVEL_OFF);
+      else {
+        this->set_mcu_reported_power_level(TuyaPowerLevel::POWER_LEVEL_UNKNOWN);
+        ESP_LOGD(TAG, "MCU reported unconfigured or unknown power level enum value: %u", datapoint.value_enum);
+      }
+
+      ESP_LOGV(TAG, "MCU reported power level: %s (enum %u)",
+               tuya_power_level_to_string(this->power_level_.value()), datapoint.value_enum);
+    });
+  }
+  if (this->operation_mode_id_.has_value()) {
+    this->parent_->register_listener(*this->operation_mode_id_, [this](TuyaDatapoint datapoint) {
+      if (datapoint.value_enum == 0)
+        this->set_mcu_reported_operation_mode(TuyaOperationMode::OPERATION_MODE_MANUAL);
+      else if (datapoint.value_enum == 1)
+        this->set_mcu_reported_operation_mode(TuyaOperationMode::OPERATION_MODE_PROGRAM);
+      else {
+        this->set_mcu_reported_operation_mode(TuyaOperationMode::OPERATION_MODE_UNKNOWN);
+        ESP_LOGD(TAG, "MCU reported unconfigured or unknown  operation mode enum value: %u", datapoint.value_enum);
+      }
+      ESP_LOGV(TAG, "MCU reported operation mode: %s (enum %u)",
+               tuya_operation_mode_to_string(this->operation_mode_.value()), datapoint.value_enum);
+    });
+  }
 }
 
 void TuyaClimate::control(const climate::ClimateCall &call) {
@@ -107,6 +140,10 @@ void TuyaClimate::dump_config() {
 }
 
 void TuyaClimate::compute_state_() {
+  if (supports_POWER_LEVEL_()) {
+    return; // power level monitor will set the correct state
+  }
+
   if (isnan(this->current_temperature) || isnan(this->target_temperature)) {
     // if any control parameters are nan, go to OFF action (not IDLE!)
     this->switch_to_action_(climate::CLIMATE_ACTION_OFF);
@@ -148,6 +185,88 @@ void TuyaClimate::compute_state_() {
 void TuyaClimate::switch_to_action_(climate::ClimateAction action) {
   // For now this just sets the current action but could include triggers later
   this->action = action;
+}
+
+bool TuyaClimate::supports_POWER_LEVEL_() {
+  return this->power_level_id_.has_value();
+}
+
+void TuyaClimate::set_mcu_reported_power_level(TuyaPowerLevel level) {
+   
+   this->power_level_ = level;
+   switch (level) {
+      case TuyaPowerLevel::POWER_LEVEL_OFF:
+        switch_to_action_(climate::CLIMATE_ACTION_IDLE);
+        break;
+      case TuyaPowerLevel::POWER_LEVEL_LOW:
+      case TuyaPowerLevel::POWER_LEVEL_MEDIUM:
+      case TuyaPowerLevel::POWER_LEVEL_HIGH:
+        switch_to_action_(climate::CLIMATE_ACTION_HEATING);
+        break;
+      default: // do nothing
+        break;
+    }
+    this->power_level_reported_callback_.call();
+    this->publish_state();
+}
+
+void TuyaClimate::control_power_level(TuyaPowerLevel level) {
+  ESP_LOGV(TAG, "Received power level control request: %s", tuya_power_level_to_string(level));
+  if (supports_POWER_LEVEL_()) {
+    uint8_t value;
+    if (level == TuyaPowerLevel::POWER_LEVEL_LOW && power_level_enum_low_.has_value())
+      value = power_level_enum_low_.value();
+    else if (level == TuyaPowerLevel::POWER_LEVEL_MEDIUM && power_level_enum_medium_.has_value())
+      value = power_level_enum_medium_.value();
+    else if (level == TuyaPowerLevel::POWER_LEVEL_HIGH && power_level_enum_high_.has_value())
+      value = power_level_enum_high_.value();
+    else if (level == TuyaPowerLevel::POWER_LEVEL_OFF && power_level_enum_off_.has_value())
+      value = power_level_enum_off_.value();
+    else {
+      ESP_LOGD(TAG, "Setting power level: %s not supported or not configured", tuya_power_level_to_string(level));
+      return;
+    }
+
+    ESP_LOGD(TAG, "Sending power level: %s (enum value=%u) to MCU", tuya_power_level_to_string(level), value);
+    TuyaDatapoint datapoint{};
+    datapoint.id = *this->power_level_id_;
+    datapoint.type = TuyaDatapointType::ENUM;
+    datapoint.value_enum = value;
+    this->parent_->set_datapoint_value(datapoint);
+  }
+  ESP_LOGD(TAG, "Control power level not supported");
+}
+
+bool TuyaClimate::supports_operation_mode_() { return this->operation_mode_id_.has_value(); }
+
+void TuyaClimate::set_mcu_reported_operation_mode(TuyaOperationMode mode) {
+  this->operation_mode_ = mode;
+  // may also want to reset traits to avoid unexpected/undesired behavior (like setting power level not allowed/does nothing when in program mode)
+  this->operation_mode_reported_callback_.call();
+  this->publish_state();
+}
+
+void TuyaClimate::control_operation_mode(TuyaOperationMode mode) {
+  ESP_LOGV(TAG, "Received operation mode control request: %s", tuya_operation_mode_to_string(mode));
+  if (supports_operation_mode_()) {
+    uint8_t value;
+    if (mode == TuyaOperationMode::OPERATION_MODE_MANUAL && operation_mode_enum_manual_.has_value())
+      value = operation_mode_enum_manual_.value();
+    else if (mode == TuyaOperationMode::OPERATION_MODE_PROGRAM && operation_mode_enum_program_.has_value())
+      value = operation_mode_enum_program_.value();
+    else {
+      ESP_LOGD(TAG, "Setting operation mode %s not supported or not configured", tuya_operation_mode_to_string(mode));
+      return;
+    }
+
+    ESP_LOGD(TAG, "Sending operation mode: %s (enum value=%u) to MCU", tuya_operation_mode_to_string(mode), value);
+    TuyaDatapoint datapoint{};
+    datapoint.id = *this->power_level_id_;
+    datapoint.type = TuyaDatapointType::ENUM;
+    datapoint.value_enum = value;
+    this->parent_->set_datapoint_value(datapoint);
+  }
+  ESP_LOGD(TAG, "Control operation mode not configured");
 }
 
 }  // namespace tuya
