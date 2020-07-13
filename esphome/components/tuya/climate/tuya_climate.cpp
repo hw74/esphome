@@ -261,7 +261,7 @@ void TuyaClimate::control_operation_mode(TuyaOperationMode mode) {
 
     ESP_LOGD(TAG, "Sending operation mode: %s (enum value=%u) to MCU", tuya_operation_mode_to_string(mode), value);
     TuyaDatapoint datapoint{};
-    datapoint.id = *this->power_level_id_;
+    datapoint.id = *this->operation_mode_id_;
     datapoint.type = TuyaDatapointType::ENUM;
     datapoint.value_enum = value;
     this->parent_->set_datapoint_value(datapoint);
