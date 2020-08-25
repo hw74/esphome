@@ -1,7 +1,7 @@
 from esphome.components import climate
 import esphome.config_validation as cv
 import esphome.codegen as cg
-from esphome.const import CONF_ID, CONF_SWITCH_DATAPOINT
+from esphome.const import CONF_ID, CONF_SWITCH_DATAPOINT, CONF_NAME
 from .. import tuya_ns, CONF_TUYA_ID, Tuya
 
 DEPENDENCIES = ['tuya']
@@ -9,8 +9,20 @@ DEPENDENCIES = ['tuya']
 CONF_TARGET_TEMPERATURE_DATAPOINT = "target_temperature_datapoint"
 CONF_CURRENT_TEMPERATURE_DATAPOINT = "current_temperature_datapoint"
 # CONF_ECO_MODE_DATAPOINT = "eco_mode_datapoint"
+CONF_TUYA_ENUMS = "enums"
+CONF_DATAPOINT = "datapoint"
+CONF_TUYA_ENUM_ITEMS = "items"
 
 TuyaClimate = tuya_ns.class_('TuyaClimate', climate.Climate, cg.Component)
+
+TUYA_ENUM_SCHEMA = cv.Schema({
+    cv.GenerateID(): cv.declare_id(TuyaClimate),
+    cv.Required(CONF_NAME): cv.string,
+    cv.Required(CONF_DATAPOINT): cv.uint8_t,
+    cv.Optional(CONF_TUYA_ENUM_ITEMS, default={}): cv.Schema({
+        cv.string: cv.uint8_t,
+    }),
+})
 
 CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
     cv.GenerateID(): cv.declare_id(TuyaClimate),
@@ -19,6 +31,8 @@ CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
     cv.Optional(CONF_TARGET_TEMPERATURE_DATAPOINT): cv.uint8_t,
     cv.Optional(CONF_CURRENT_TEMPERATURE_DATAPOINT): cv.uint8_t,
     # cv.Optional(CONF_ECO_MODE_DATAPOINT): cv.uint8_t,
+    cv.Optional(CONF_TUYA_ENUMS): TUYA_ENUM_SCHEMA,
+
 }).extend(cv.COMPONENT_SCHEMA), cv.has_at_least_one_key(
     CONF_TARGET_TEMPERATURE_DATAPOINT, CONF_SWITCH_DATAPOINT))
 
