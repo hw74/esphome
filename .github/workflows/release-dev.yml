@@ -98,6 +98,8 @@ jobs:
         run: script/ci-custom.py
       - name: Lint Python
         run: script/lint-python
+      - name: Lint CODEOWNERS
+        run: script/build_codeowners.py --check
 
   test:
     runs-on: ubuntu-latest
@@ -188,7 +190,7 @@ jobs:
           echo "::set-env name=TAG::${TAG}"
       - name: Set up env variables
         run: |
-          base_version="2.3.4"
+          base_version="2.6.0"
 
           if [[ "${{ matrix.build_type }}" == "hassio" ]]; then
             build_from="esphome/esphome-hassio-base-${{ matrix.arch }}:${base_version}"

@@ -1,7 +1,7 @@
 """Constants used by esphome."""
 
 MAJOR_VERSION = 1
-MINOR_VERSION = 15
+MINOR_VERSION = 16
 PATCH_VERSION = '0-dev'
 __short_version__ = f'{MAJOR_VERSION}.{MINOR_VERSION}'
 __version__ = f'{__short_version__}.{PATCH_VERSION}'
@@ -10,18 +10,37 @@ ESP_PLATFORM_ESP32 = 'ESP32'
 ESP_PLATFORM_ESP8266 = 'ESP8266'
 ESP_PLATFORMS = [ESP_PLATFORM_ESP32, ESP_PLATFORM_ESP8266]
 
-ALLOWED_NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789_'
-ARDUINO_VERSION_ESP32_DEV = 'https://github.com/platformio/platform-espressif32.git'
-ARDUINO_VERSION_ESP32_1_0_0 = 'espressif32@1.5.0'
-ARDUINO_VERSION_ESP32_1_0_1 = 'espressif32@1.6.0'
-ARDUINO_VERSION_ESP32_1_0_2 = 'espressif32@1.9.0'
-ARDUINO_VERSION_ESP32_1_0_3 = 'espressif32@1.10.0'
-ARDUINO_VERSION_ESP32_1_0_4 = 'espressif32@1.11.0'
-ARDUINO_VERSION_ESP8266_DEV = 'https://github.com/platformio/platform-espressif8266.git'
-ARDUINO_VERSION_ESP8266_2_5_0 = 'espressif8266@2.0.1'
-ARDUINO_VERSION_ESP8266_2_5_1 = 'espressif8266@2.1.0'
-ARDUINO_VERSION_ESP8266_2_5_2 = 'espressif8266@2.2.3'
-ARDUINO_VERSION_ESP8266_2_3_0 = 'espressif8266@1.5.0'
+ALLOWED_NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789_-'
+# Lookup table from ESP32 arduino framework version to latest platformio
+# package with that version
+# See also https://github.com/platformio/platform-espressif32/releases
+ARDUINO_VERSION_ESP32 = {
+    'dev': 'https://github.com/platformio/platform-espressif32.git',
+    '1.0.4': 'espressif32@1.12.4',
+    '1.0.3': 'espressif32@1.10.0',
+    '1.0.2': 'espressif32@1.9.0',
+    '1.0.1': 'espressif32@1.7.0',
+    '1.0.0': 'espressif32@1.5.0',
+}
+# See also https://github.com/platformio/platform-espressif8266/releases
+ARDUINO_VERSION_ESP8266 = {
+    'dev': 'https://github.com/platformio/platform-espressif8266.git',
+    '2.7.4': 'espressif8266@2.6.2',
+    '2.7.3': 'espressif8266@2.6.1',
+    '2.7.2': 'espressif8266@2.6.0',
+    '2.7.1': 'espressif8266@2.5.3',
+    '2.7.0': 'espressif8266@2.5.0',
+    '2.6.3': 'espressif8266@2.4.0',
+    '2.6.2': 'espressif8266@2.3.1',
+    '2.6.1': 'espressif8266@2.3.0',
+    '2.5.2': 'espressif8266@2.2.3',
+    '2.5.1': 'espressif8266@2.1.1',
+    '2.5.0': 'espressif8266@2.0.4',
+    '2.4.2': 'espressif8266@1.8.0',
+    '2.4.1': 'espressif8266@1.7.3',
+    '2.4.0': 'espressif8266@1.6.0',
+    '2.3.0': 'espressif8266@1.5.0',
+}
 SOURCE_FILE_EXTENSIONS = {'.cpp', '.hpp', '.h', '.c', '.tcc', '.ino'}
 HEADER_FILE_EXTENSIONS = {'.h', '.hpp', '.tcc'}
 
@@ -75,6 +94,8 @@ CONF_CALIBRATION = 'calibration'
 CONF_CAPACITANCE = 'capacitance'
 CONF_CARRIER_DUTY_PERCENT = 'carrier_duty_percent'
 CONF_CARRIER_FREQUENCY = 'carrier_frequency'
+CONF_CERTIFICATE = "certificate"
+CONF_CERTIFICATE_AUTHORITY = "certificate_authority"
 CONF_CHANGE_MODE_EVERY = 'change_mode_every'
 CONF_CHANNEL = 'channel'
 CONF_CHANNELS = 'channels'
@@ -145,6 +166,7 @@ CONF_DRY_ACTION = 'dry_action'
 CONF_DRY_MODE = 'dry_mode'
 CONF_DUMP = 'dump'
 CONF_DURATION = 'duration'
+CONF_EAP = 'eap'
 CONF_ECHO_PIN = 'echo_pin'
 CONF_EFFECT = 'effect'
 CONF_EFFECTS = 'effects'
@@ -211,6 +233,7 @@ CONF_I2C = 'i2c'
 CONF_I2C_ID = 'i2c_id'
 CONF_ICON = 'icon'
 CONF_ID = 'id'
+CONF_IDENTITY = 'identity'
 CONF_IDLE = 'idle'
 CONF_IDLE_ACTION = 'idle_action'
 CONF_IDLE_LEVEL = 'idle_level'
@@ -238,6 +261,7 @@ CONF_JS_URL = 'js_url'
 CONF_JVC = 'jvc'
 CONF_KEEP_ON_TIME = 'keep_on_time'
 CONF_KEEPALIVE = 'keepalive'
+CONF_KEY = 'key'
 CONF_LAMBDA = 'lambda'
 CONF_LEVEL = 'level'
 CONF_LG = 'lg'
@@ -379,7 +403,6 @@ CONF_POWER_SAVE_MODE = 'power_save_mode'
 CONF_POWER_SUPPLY = 'power_supply'
 CONF_PRESSURE = 'pressure'
 CONF_PRIORITY = 'priority'
-CONF_PROMETHEUS = 'prometheus'
 CONF_PROTOCOL = 'protocol'
 CONF_PULL_MODE = 'pull_mode'
 CONF_PULSE_LENGTH = 'pulse_length'
@@ -566,10 +589,10 @@ ICON_GAS_CYLINDER = 'mdi:gas-cylinder'
 ICON_GAUGE = 'mdi:gauge'
 ICON_LIGHTBULB = 'mdi:lightbulb'
 ICON_MAGNET = 'mdi:magnet'
+ICON_MOLECULE_CO2 = 'mdi:molecule-co2'
 ICON_MOTION_SENSOR = 'mdi:motion-sensor'
 ICON_NEW_BOX = 'mdi:new-box'
 ICON_PERCENT = 'mdi:percent'
-ICON_PERIODIC_TABLE_CO2 = 'mdi:periodic-table-co2'
 ICON_POWER = 'mdi:power'
 ICON_PULSE = 'mdi:pulse'
 ICON_RADIATOR = 'mdi:radiator'
